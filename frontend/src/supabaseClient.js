@@ -2,26 +2,37 @@ import { createClient } from '@supabase/supabase-js'
 
 /**
  * Supabase client — requires VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
- * (see `.env.example`; local secrets in `.env.local`).
+ * (set local secrets in `.env.local`).
  */
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey)
 
-if (!supabaseUrl || !supabaseKey) {
+if (!isSupabaseConfigured) {
   console.warn(
-    '[Pathfinder] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Copy frontend/.env.example to .env.local and add your Supabase API URL and anon (or publishable) key.'
+    '[Pathfinder] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Add them in frontend/.env.local.'
   )
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseKey || '', {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce',
-  }
-})
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+      }
+    })
+  : null
+
+const SUPABASE_DISABLED_ERROR = {
+  message: 'Supabase is not configured. Use guest mode for demo, or add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local.',
+}
+
+function getDisabledResult() {
+  return { data: null, error: SUPABASE_DISABLED_ERROR }
+}
 
 /**
  * AUTH HELPERS
@@ -34,6 +45,7 @@ export const supabase = createClient(supabaseUrl || '', supabaseKey || '', {
 export const authService = {
   // Sign up with email + password
   async signUpWithPassword({ email, password, name }) {
+    if (!supabase) return getDisabledResult()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -47,12 +59,14 @@ export const authService = {
 
   // Sign in with email + password
   async signInWithPassword({ email, password }) {
+    if (!supabase) return getDisabledResult()
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     return { data, error };
   },
 
   // Email OTP (magic link / 6-digit code)
   async sendEmailOTP(email) {
+    if (!supabase) return getDisabledResult()
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -65,6 +79,7 @@ export const authService = {
 
   // Verify the 6-digit OTP code
   async verifyEmailOTP({ email, token }) {
+    if (!supabase) return getDisabledResult()
     const { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
@@ -75,6 +90,7 @@ export const authService = {
 
   // Google OAuth (opens Google popup / redirect)
   async signInWithGoogle() {
+    if (!supabase) return getDisabledResult()
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -90,18 +106,29 @@ export const authService = {
 
   // Get current session
   async getSession() {
+    if (!supabase) return { data: { session: null }, error: null }
     const { data, error } = await supabase.auth.getSession();
     return { data, error };
   },
 
   // Sign out
   async signOut() {
+    if (!supabase) return { error: null }
     const { error } = await supabase.auth.signOut();
     return { error };
   },
 
   // Listen for auth state changes
   onAuthStateChange(callback) {
+    if (!supabase) {
+      return {
+        data: {
+          subscription: {
+            unsubscribe: () => {},
+          },
+        },
+      }
+    }
     return supabase.auth.onAuthStateChange(callback);
   }
 };
@@ -153,6 +180,7 @@ function getCurrentUserIdSafe() {
 }
 
 async function canUseRemoteThoughts() {
+  if (!supabase) return false
   const session = await supabase.auth.getSession();
   const uid = session?.data?.session?.user?.id || getCurrentUserIdSafe();
   if (!uid) return false;
@@ -315,3 +343,4 @@ export const dataService = {
     }
   }
 };
+
