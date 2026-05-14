@@ -1,0 +1,134 @@
+:root {
+  /* Primary brand — soft indigo-violet */
+  --primary-color: #5b47e0;
+  --primary-hover: #4a38c5;
+  --primary-light: #ede9ff;
+  --primary-mid:   #ddd6fe;
+
+  /* Surfaces — warm off-white family */
+  --bg-color: #fafaf8;
+  --white: #ffffff;
+  --card-bg: #f8f7f4;
+  --surface-2: #f3f2ef;
+
+  /* Text */
+  --text-dark: #1c1917;
+  --text-mid:  #3d3a36;
+  --text-light: #6b6b6b;
+  --text-muted: #9c9589;
+
+  /* Borders */
+  --border-color: #e8e5e0;
+  --border-light: #f0ede8;
+
+  /* Accents */
+  --accent-green: #34d399;
+  --accent-green-bg: #ecfdf5;
+  --accent-purple: #c4b8ff;
+  --accent-teal: #2dd4bf;
+
+  /* Soft fill palette — used for badges, chips, highlights */
+  --fill-lavender:      #ede9ff;
+  --fill-lavender-pale: #f5f3ff;
+  --fill-sage:          #ecfdf5;
+  --fill-sage-mid:      #d1fae5;
+  --fill-sky:           #eff6ff;
+  --fill-sky-mid:       #dbeafe;
+  --fill-amber:         #fffbeb;
+  --fill-amber-mid:     #fef3c7;
+  --fill-rose:          #fff1f2;
+  --fill-rose-mid:      #fce7eb;
+  --fill-violet:        #f5f3ff;
+  --fill-violet-mid:    #ede9fe;
+  --fill-peach:         #fff7ed;
+  --fill-peach-mid:     #fed7aa;
+
+  /* Border-radii */
+  --border-radius-lg: 24px;
+  --border-radius-md: 12px;
+  --border-radius-sm: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  background: none;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Utilities */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  font-size: 16px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 1px dashed var(--primary-color);
+  padding: 11px 23px;
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-outline:hover {
+  background-color: rgba(75, 54, 204, 0.05);
+}
+
+.btn-secondary {
+  background-color: #110d2c;
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #0b081a;
+}
