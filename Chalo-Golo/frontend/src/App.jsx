@@ -12,13 +12,28 @@ import RoadmapPage from './components/RoadmapPage';
 import CommunityPage from './components/CommunityPage';
 import SchedulePage from './components/SchedulePage';
 import RealityCheckModal from './components/RealityCheckModal';
+import AttentionTestPage from './components/AttentionTestPage';
+import LevelRevealScreen from './components/LevelRevealScreen';
+import AntiDistractionOverlay from './components/AntiDistractionOverlay';
+import BadgeRevealModal from './components/BadgeRevealModal';
+import MiniGameTap from './components/MiniGameTap';
 import { authService, dataService } from './supabaseClient';
 import { generateRoadmapWithBackend } from './lib/roadmapEngine';
+import { generateGamifiedRoadmapJSON, buildFallbackGamifiedRoadmap } from './services/ai.js';
+import { insertRoadmapRow, insertQuizResultRow, upsertUserRow, fetchUserRow, insertMiniGameRow } from './services/gamificationDb.js';
+import { computeQuizXp } from './services/rewards.js';
+import { useUserStore } from './stores/userStore.js';
+import { useBadge } from './hooks/useBadge.js';
+import { useXP } from './hooks/useXP.js';
+import { useAntiDistraction } from './hooks/useAntiDistraction.js';
 
 const initialProfile = dataService.loadProfile();
 const getInitialPage = (profile) => {
   if (!profile) return 'landing';
-  return profile.guest || profile.onboardingComplete ? 'dashboard' : 'onboarding';
+  if (profile.guest) return 'dashboard';
+  if (!profile.attentionTestComplete) return 'attention-test';
+  if (!profile.onboardingComplete) return 'onboarding';
+  return 'dashboard';
 };
 
 const buildSessionProfile = (sessionUser, storedProfile) => {
@@ -34,6 +49,8 @@ const buildSessionProfile = (sessionUser, storedProfile) => {
 };
 
 function App() {
+  const { unlock: unlockBadge } = useBadge();
+  const { grantXp } = useXP();
   const [page, setPage] = useState(getInitialPage(initialProfile));
   const [userProfile, setUserProfile] = useState(initialProfile);
   const [activeThought, setActiveThought] = useState(null);
@@ -42,6 +59,11 @@ function App() {
   const [showRealityCheck, setShowRealityCheck] = useState(false);
   const [thoughts, setThoughts] = useState([]);
   const [apiNotice, setApiNotice] = useState('');
+  const [attnResult, setAttnResult] = useState(null);
+
+  useAntiDistraction({
+    enabled: ['dashboard', 'roadmap', 'minigame', 'attention-test', 'level-reveal', 'community', 'schedule', 'onboarding', 'generating', 'generating-roadmap'].includes(page),
+  });
 
   useEffect(() => {
     const bootstrapAuth = async () => {
@@ -59,6 +81,33 @@ function App() {
       if (sessionUser) {
         const storedProfile = dataService.loadProfile();
         const merged = buildSessionProfile(sessionUser, storedProfile);
+        const row = await fetchUserRow(sessionUser.id);
+        if (row) {
+          merged.xp = row.xp ?? merged.xp ?? 0;
+          merged.streak = row.streak ?? merged.streak ?? 0;
+          merged.level = row.level || merged.level || 'spark';
+          merged.attentionScore = row.attention_score ?? merged.attentionScore;
+          merged.emergencyExitLeft = row.emergency_exit_left ?? merged.emergencyExitLeft ?? 2;
+          merged.attentionTestComplete =
+            Boolean(storedProfile?.attentionTestComplete) || row.attention_score != null;
+          useUserStore.getState().hydrate({
+            userId: sessionUser.id,
+            xp: merged.xp,
+            streak: merged.streak,
+            level: merged.level,
+            attentionScore: merged.attentionScore,
+            emergencyExitLeft: merged.emergencyExitLeft,
+          });
+        } else {
+          useUserStore.getState().hydrate({
+            userId: sessionUser.id,
+            xp: merged.xp ?? 0,
+            streak: merged.streak ?? 0,
+            level: merged.level || 'spark',
+            attentionScore: merged.attentionScore,
+            emergencyExitLeft: merged.emergencyExitLeft ?? 2,
+          });
+        }
         setUserProfile(merged);
         dataService.saveProfile(merged);
         setPage(getInitialPage(merged));
@@ -83,6 +132,7 @@ function App() {
       onboardingComplete: data.guest ? true : Boolean(canReuseStoredProfile && storedProfile?.onboardingComplete),
     };
 
+    useUserStore.getState().setUserId(data.id || null);
     setUserProfile(nextProfile);
     dataService.saveProfile(nextProfile);
     if (data.id) {
@@ -116,9 +166,17 @@ function App() {
     } else {
       setApiNotice('');
     }
+    let gamified = await generateGamifiedRoadmapJSON({
+      topic: answers.goal,
+      userLevel: userProfile?.level || 'spark',
+    });
+    if (!gamified?.nodes?.length) {
+      gamified = buildFallbackGamifiedRoadmap(answers.goal);
+    }
     setPendingThought({
       ...answers,
       roadmap,
+      gamifiedRoadmap: gamified,
     });
     setShowCreateThought(false);
     setPage('generating-roadmap');
@@ -138,6 +196,14 @@ function App() {
     setPendingThought(null);
     setApiNotice('');
     setPage('landing');
+    useUserStore.getState().hydrate({
+      userId: null,
+      xp: 0,
+      streak: 0,
+      level: 'spark',
+      attentionScore: null,
+      emergencyExitLeft: 2,
+    });
   }, []);
 
   const closeRealityCheck = () => {
@@ -148,6 +214,16 @@ function App() {
 
   const handleRealityAccept = async () => {
     const roadmap = pendingThought?.roadmap;
+    const gamified = pendingThought?.gamifiedRoadmap;
+    let roadmapDbId = null;
+    if (userProfile?.id && gamified) {
+      const ins = await insertRoadmapRow({
+        userId: userProfile.id,
+        topic: pendingThought?.goal || 'Goal',
+        roadmapJson: gamified,
+      });
+      roadmapDbId = ins?.id || null;
+    }
     const firstPhase = roadmap?.phases?.[0];
     const firstModule = firstPhase?.modules?.find((m) => !m.done) || firstPhase?.modules?.[0];
     const thought = {
@@ -164,19 +240,143 @@ function App() {
       tags: (roadmap?.projects?.[0]?.tech || []).slice(0, 3),
       createdAt: new Date().toISOString(),
       realityScore: roadmap?.realityCheck?.score ?? null,
-      roadmap,
+      roadmap: gamified ? { ...roadmap, _gamifiedRoadmap: gamified, _roadmapDbId: roadmapDbId } : roadmap,
+      gamifiedRoadmap: gamified || null,
+      roadmapDbId,
       thoughtData: pendingThought,
       weeklyHours: userProfile?.weeklyHours || null,
     };
     const updatedThoughts = await dataService.upsertThoughtForUser(userProfile?.id, thought);
     setThoughts(updatedThoughts);
+    if (userProfile?.id && updatedThoughts.length === 1) {
+      await unlockBadge('first_roadmap', userProfile.id, 35);
+    }
     setShowRealityCheck(false);
     setPendingThought(null);
     setActiveThought(thought);
     setPage('roadmap');
   };
 
-  if (page === 'roadmap') return <RoadmapPage thought={activeThought} onBack={() => setPage('dashboard')} userProfile={userProfile} />;
+  const handleThoughtUpdate = async (updated) => {
+    const list = thoughts.map((t) => (t.id === updated.id ? updated : t));
+    setThoughts(list);
+    if (activeThought?.id === updated.id) setActiveThought(updated);
+    await dataService.upsertThoughtForUser(userProfile?.id, updated);
+  };
+
+  const handleQuizComplete = async ({ percent, thoughtId, topic, roadmapDbId }) => {
+    const earned = computeQuizXp(40, percent);
+    const res = await grantXp(earned);
+    const nextProfile = { ...userProfile, xp: res.xp };
+    setUserProfile(nextProfile);
+    dataService.saveProfile(nextProfile);
+    if (userProfile?.id) {
+      await insertQuizResultRow({
+        user_id: userProfile.id,
+        roadmap_id: roadmapDbId || null,
+        score: percent,
+        answers: { topic, thoughtId },
+      });
+    }
+    if (percent >= 100) await unlockBadge('quiz_perfect', userProfile?.id, 45);
+    if (res.leveledVisual) await unlockBadge('level_up', userProfile?.id, 35);
+  };
+
+  const handleAttentionDone = ({ score, level }) => {
+    setAttnResult({ score, level });
+    setPage('level-reveal');
+  };
+
+  const handleLevelRevealContinue = async () => {
+    if (!attnResult) return;
+    const next = {
+      ...userProfile,
+      attentionTestComplete: true,
+      attentionScore: attnResult.score,
+      level: attnResult.level,
+    };
+    setUserProfile(next);
+    dataService.saveProfile(next);
+    useUserStore.getState().hydrate({
+      userId: next.id,
+      level: next.level,
+      attentionScore: attnResult.score,
+      xp: next.xp ?? useUserStore.getState().xp,
+      streak: next.streak ?? useUserStore.getState().streak,
+      emergencyExitLeft: next.emergencyExitLeft ?? useUserStore.getState().emergencyExitLeft,
+    });
+    if (next.id) {
+      await upsertUserRow({
+        id: next.id,
+        attention_score: attnResult.score,
+        level: next.level,
+        username: next.name,
+        xp: next.xp ?? useUserStore.getState().xp ?? 0,
+        streak: next.streak ?? useUserStore.getState().streak ?? 0,
+      });
+    }
+    setAttnResult(null);
+    setPage(next.onboardingComplete ? 'dashboard' : 'onboarding');
+  };
+
+  const handleMiniGameDone = async (score) => {
+    const add = Math.min(40, Math.max(5, Math.floor(score / 3)));
+    const res = await grantXp(add);
+    const nextProfile = { ...userProfile, xp: res.xp };
+    setUserProfile(nextProfile);
+    dataService.saveProfile(nextProfile);
+    if (userProfile?.id) {
+      await insertMiniGameRow({
+        user_id: userProfile.id,
+        game_type: 'tap_surge',
+        score,
+        duration: 28,
+      });
+    }
+    setPage('dashboard');
+  };
+
+  if (page === 'attention-test') {
+    return (
+      <>
+        <AntiDistractionOverlay />
+        <AttentionTestPage onComplete={handleAttentionDone} onBack={() => setPage('auth')} />
+      </>
+    );
+  }
+  if (page === 'level-reveal') {
+    if (!attnResult) return null;
+    return (
+      <>
+        <AntiDistractionOverlay />
+        <LevelRevealScreen level={attnResult.level} score={attnResult.score} onContinue={handleLevelRevealContinue} />
+      </>
+    );
+  }
+  if (page === 'minigame') {
+    return (
+      <>
+        <AntiDistractionOverlay />
+        <MiniGameTap onClose={() => setPage('dashboard')} onDone={handleMiniGameDone} />
+      </>
+    );
+  }
+
+  if (page === 'roadmap') {
+    return (
+      <>
+        <AntiDistractionOverlay />
+        <BadgeRevealModal />
+        <RoadmapPage
+          thought={activeThought}
+          onBack={() => setPage('dashboard')}
+          userProfile={userProfile}
+          onThoughtUpdate={handleThoughtUpdate}
+          onQuizComplete={handleQuizComplete}
+        />
+      </>
+    );
+  }
   if (page === 'community') return <CommunityPage onBack={() => setPage('dashboard')} userName={userProfile?.name} />;
   if (page === 'schedule') return <SchedulePage thoughts={thoughts} userProfile={userProfile} onBack={() => setPage('dashboard')} onViewRoadmap={(t) => { setActiveThought(t); setPage('roadmap'); }} />;
   if (page === 'generating') return <GeneratingScreen onComplete={() => setPage('dashboard')} type="profile" />;
@@ -190,13 +390,25 @@ function App() {
   if (page === 'auth') return <AuthPage onAuth={handleAuth} />;
   if (page === 'dashboard') return (
     <>
+      <AntiDistractionOverlay />
+      <BadgeRevealModal />
       {apiNotice && (
         <div style={{ background: '#fef3c7', borderTop: '2px solid #f59e0b', padding: '10px 24px', fontSize: 13, color: '#92400e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlertTriangle size={14} /> {apiNotice}</span>
           <button onClick={() => setApiNotice('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', fontWeight: 700, fontSize: 16 }}>×</button>
         </div>
       )}
-      <DashboardPage thoughts={thoughts} userProfile={userProfile} onGoToCommunity={() => setPage('community')} onGoToSchedule={() => setPage('schedule')} onViewRoadmap={(t) => { setActiveThought(t); setPage('roadmap'); }} onCreateThought={() => setShowCreateThought(true)} onDeleteThought={handleDeleteThought} onLogout={handleLogout} />
+      <DashboardPage
+        thoughts={thoughts}
+        userProfile={userProfile}
+        onGoToCommunity={() => setPage('community')}
+        onGoToSchedule={() => setPage('schedule')}
+        onViewRoadmap={(t) => { setActiveThought(t); setPage('roadmap'); }}
+        onCreateThought={() => setShowCreateThought(true)}
+        onDeleteThought={handleDeleteThought}
+        onLogout={handleLogout}
+        onOpenMiniGame={() => setPage('minigame')}
+      />
       {showCreateThought && <CreateThought onComplete={handleThoughtComplete} onCancel={() => setShowCreateThought(false)} userProfile={userProfile} />}
       {showRealityCheck && <RealityCheckModal goalData={pendingThought} roadmap={pendingThought?.roadmap} userProfile={userProfile} onAccept={handleRealityAccept} onClose={closeRealityCheck} />}
     </>
@@ -230,7 +442,24 @@ function App() {
               <button className="btn-primary" onClick={() => setPage('auth')}>
                 Start for free <ArrowRight size={18} />
               </button>
-              <button className="btn-demo" onClick={() => { const p = { name: 'Demo User', guest: true }; dataService.saveProfile(p); setUserProfile(p); setPage('dashboard'); }}>
+              <button
+                className="btn-demo"
+                onClick={() => {
+                  const p = {
+                    name: 'Demo User',
+                    guest: true,
+                    onboardingComplete: true,
+                    attentionTestComplete: true,
+                    level: 'blaze',
+                    xp: 120,
+                    streak: 4,
+                  };
+                  dataService.saveProfile(p);
+                  setUserProfile(p);
+                  useUserStore.getState().hydrate({ userId: null, xp: p.xp, streak: p.streak, level: p.level });
+                  setPage('dashboard');
+                }}
+              >
                 View Live Demo
               </button>
             </div>
@@ -361,7 +590,25 @@ function App() {
           <h2>Ready to build your own success story?</h2>
           <div className="cta-actions">
             <button className="btn-secondary" onClick={() => setPage('auth')}>Start Free — No account needed</button>
-            <button className="btn-secondary" style={{ backgroundColor: '#0a0814' }} onClick={() => { const p = { name: 'Demo User', guest: true }; dataService.saveProfile(p); setUserProfile(p); setPage('dashboard'); }}>
+            <button
+              className="btn-secondary"
+              style={{ backgroundColor: '#0a0814' }}
+              onClick={() => {
+                const p = {
+                  name: 'Demo User',
+                  guest: true,
+                  onboardingComplete: true,
+                  attentionTestComplete: true,
+                  level: 'blaze',
+                  xp: 120,
+                  streak: 4,
+                };
+                dataService.saveProfile(p);
+                setUserProfile(p);
+                useUserStore.getState().hydrate({ userId: null, xp: p.xp, streak: p.streak, level: p.level });
+                setPage('dashboard');
+              }}
+            >
               View Live Demo
             </button>
           </div>
@@ -389,7 +636,7 @@ function App() {
             </div>
           </div>
           <div className="footer-bottom">
-            <div>© 2025 CHALO GOLO. HACKATHON PROJECT. ALL DATA STAYS ON YOUR DEVICE.</div>
+            <div>© 2026 CHALO GOLO — We are not competing with edtech. We are competing with TikTok for attention.</div>
             <div className="footer-bottom-links">
               <a href="#">Privacy</a>
               <a href="#">Terms</a>

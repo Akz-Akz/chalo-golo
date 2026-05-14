@@ -238,6 +238,22 @@ export default function CommunityPage({ onBack, userName }) {
         </div>
       </div>
 
+      <div style={{ background: 'linear-gradient(90deg,#0f172a,#1e1b4b)', padding: '12px 0', borderBottom: '1px solid #e5e5e5' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px', display: 'flex', gap: 12, overflowX: 'auto' }}>
+          {[
+            { u: 'NovaPilot', a: 'Boss quiz cleared — +120 XP', t: 'Just now' },
+            { u: 'BlazeHive', a: '7-day streak lit', t: 'Live' },
+            { u: 'SparkWave', a: 'First roadmap synced', t: 'Realtime sim' },
+          ].map((row) => (
+            <div key={row.u} style={{ minWidth: 220, background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: '10px 12px', color: '#e2e8f0', fontSize: 12 }}>
+              <div style={{ fontWeight: 800 }}>{row.u}</div>
+              <div style={{ opacity: 0.85 }}>{row.a}</div>
+              <div style={{ fontSize: 10, marginTop: 4, color: '#94a3b8' }}>{row.t}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Click-away to close filter */}
       {showFilter && <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowFilter(false)} />}
 

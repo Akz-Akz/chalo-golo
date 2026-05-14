@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Map, Clock, MoreHorizontal, Sparkles, TrendingUp, Calendar, Users, CheckCircle, ChevronRight, Bell, Zap, LogOut, User, Mail, ChevronDown, Key, Check, X, Brain } from 'lucide-react';
 import { getAIKey, setAIKey, hasAIKey } from '../lib/roadmapEngine.js';
 
-export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSchedule, onViewRoadmap, onCreateThought, onDeleteThought, userProfile, onLogout }) {
+export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSchedule, onViewRoadmap, onCreateThought, onDeleteThought, userProfile, onLogout, onOpenMiniGame }) {
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -90,6 +90,32 @@ export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSc
             }}>{item.label}</button>
           ))}
           <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginRight: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#5b47e0', background: '#f5f3ff', padding: '6px 10px', borderRadius: 999 }}>
+              {userProfile?.level?.toUpperCase?.() || 'SPARK'} • {userProfile?.xp ?? 0} XP
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ea580c', background: '#fff7ed', padding: '6px 10px', borderRadius: 999 }}>
+              streak {userProfile?.streak ?? 0}
+            </div>
+            {onOpenMiniGame ? (
+              <button
+                type="button"
+                onClick={onOpenMiniGame}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  padding: '6px 12px',
+                  borderRadius: 999,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: 'linear-gradient(90deg,#a855f7,#fb923c)',
+                  color: '#0f172a',
+                }}
+              >
+                Dopamine reset
+              </button>
+            ) : null}
+          </div>
           <button style={{ position: 'relative', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <Bell size={18} color="#5f5f5f" />
             <div style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: '50%', background: '#ef4444', border: '2px solid #fff' }} />

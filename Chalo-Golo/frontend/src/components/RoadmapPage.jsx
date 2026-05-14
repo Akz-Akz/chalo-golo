@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle, Lock, Play, BookOpen, Video, Code2, ExternalLink, ChevronDown, ChevronUp, Zap, Target, Sparkles, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, CheckCircle, Lock, Play, BookOpen, Video, Code2, ExternalLink, ChevronDown, ChevronUp, Zap, Target, Sparkles, X, Map as MapIcon } from 'lucide-react';
+import GamifiedRoadmapFlow from './GamifiedRoadmapFlow.jsx';
+import QuizRunner from './QuizRunner.jsx';
+import { mapGamifiedJsonToFlow } from '../services/roadmap.js';
+import { defaultQuizForTopic } from '../services/quiz.js';
+import { generateQuizQuestions } from '../services/ai.js';
+import { useRoadmapStore } from '../stores/roadmapStore.js';
 
 const phaseColors = ['#5b47e0', '#0284c7', '#7c3aed', '#059669', '#d97706'];
 const RICKROLL_PATTERNS = ['dqw4w9wgxcq', 'rickroll'];
@@ -68,11 +74,27 @@ function getVideoSource(item = {}) {
   return null;
 }
 
-export default function RoadmapPage({ thought, onBack, userProfile }) {
+export default function RoadmapPage({ thought, onBack, userProfile, onThoughtUpdate, onQuizComplete }) {
   const [expandedPhase, setExpandedPhase] = useState(0);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [linkError, setLinkError] = useState('');
-  const data = thought?.roadmap;
+  const [roadmapData, setRoadmapData] = useState(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState([]);
+
+  useEffect(() => {
+    if (thought?.roadmap) {
+      setRoadmapData(JSON.parse(JSON.stringify(thought.roadmap)));
+    }
+  }, [thought?.id, thought?.roadmap]);
+
+  useEffect(() => {
+    if (thought?.gamifiedRoadmap) {
+      useRoadmapStore.getState().setGamified(thought.gamifiedRoadmap, thought.roadmapDbId || null);
+    }
+  }, [thought?.gamifiedRoadmap, thought?.roadmapDbId]);
+
+  const data = roadmapData || thought?.roadmap;
   const phases = Array.isArray(data?.phases) ? data.phases : [];
   const resources = Array.isArray(data?.resources) ? data.resources : [];
   const projects = Array.isArray(data?.projects) ? data.projects : [];
@@ -127,7 +149,28 @@ export default function RoadmapPage({ thought, onBack, userProfile }) {
     openUrl(item);
   };
 
+  const flowLayout = useMemo(() => mapGamifiedJsonToFlow(thought?.gamifiedRoadmap || {}), [thought?.gamifiedRoadmap]);
+
+  const toggleModuleDone = (phaseIndex, moduleIndex) => {
+    setRoadmapData((prev) => {
+      const base = prev || thought?.roadmap;
+      if (!base) return prev;
+      const next = JSON.parse(JSON.stringify(base));
+      const m = next.phases?.[phaseIndex]?.modules?.[moduleIndex];
+      if (m) m.done = !m.done;
+      if (onThoughtUpdate && thought?.id) onThoughtUpdate({ ...thought, roadmap: next });
+      return next;
+    });
+  };
+
+  const launchQuiz = async () => {
+    const aiQs = await generateQuizQuestions({ topic: thought.goal, count: 3 });
+    setQuizQuestions(aiQs && aiQs.length ? aiQs : defaultQuizForTopic(thought.goal));
+    setShowQuiz(true);
+  };
+
   return (
+    <>
     <div style={{ minHeight: '100vh', background: '#f8f7f4' }}>
       <div style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', padding: '16px 32px', display: 'flex', alignItems: 'center', gap: 16, position: 'sticky', top: 0, zIndex: 50 }}>
         <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, border: '1.5px solid #e5e5e5', background: '#fff', cursor: 'pointer', fontWeight: 600, color: '#5f5f5f', fontSize: 14 }}>
@@ -152,6 +195,33 @@ export default function RoadmapPage({ thought, onBack, userProfile }) {
             {linkError}
           </div>
         )}
+        {thought?.gamifiedRoadmap?.nodes?.length ? (
+          <div style={{ background: '#0f172a', borderRadius: 20, padding: 20, color: '#e2e8f0', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <MapIcon size={18} color="#c4b5fd" />
+                <div style={{ fontWeight: 900 }}>Mission map</div>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>{thought.gamifiedRoadmap.title}</span>
+              </div>
+              <button
+                type="button"
+                onClick={launchQuiz}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 800,
+                  background: 'linear-gradient(90deg,#a855f7,#fb923c)',
+                  color: '#0f172a',
+                }}
+              >
+                Launch quiz
+              </button>
+            </div>
+            <GamifiedRoadmapFlow layout={flowLayout} />
+          </div>
+        ) : null}
         <div>
           <div style={{ background: '#fff', borderRadius: 20, padding: '28px 32px', marginBottom: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#1f1f1f', marginBottom: 20 }}>Your path to the goal</div>
@@ -224,18 +294,36 @@ export default function RoadmapPage({ thought, onBack, userProfile }) {
                           </div>
                         </div>
                         {phase.status !== 'locked' ? (
-                          <button
-                            onClick={() => openLearningResource(module)}
-                            disabled={!resolveResourceUrl(module)}
-                            style={{
-                              padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e5e5',
-                              background: module.done ? '#f3f4f6' : '#fff', fontSize: 13, fontWeight: 600,
-                              cursor: resolveResourceUrl(module) ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6,
-                              color: module.done ? '#5f5f5f' : '#5b47e0', opacity: resolveResourceUrl(module) ? 1 : 0.55
-                            }}
-                          >
-                            {module.done ? 'Review' : <><Play size={12} /> {getVideoSource(module) ? 'Watch' : 'Start'}</>}
-                          </button>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              onClick={() => toggleModuleDone(phaseIndex, moduleIndex)}
+                              style={{
+                                padding: '8px 12px',
+                                borderRadius: 8,
+                                border: '1.5px solid #bbf7d0',
+                                background: module.done ? '#ecfdf5' : '#fff',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                color: '#065f46',
+                              }}
+                            >
+                              {module.done ? 'Undo' : 'Mark done'}
+                            </button>
+                            <button
+                              onClick={() => openLearningResource(module)}
+                              disabled={!resolveResourceUrl(module)}
+                              style={{
+                                padding: '8px 14px', borderRadius: 8, border: '1.5px solid #e5e5e5',
+                                background: module.done ? '#f3f4f6' : '#fff', fontSize: 13, fontWeight: 600,
+                                cursor: resolveResourceUrl(module) ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6,
+                                color: module.done ? '#5f5f5f' : '#5b47e0', opacity: resolveResourceUrl(module) ? 1 : 0.55
+                              }}
+                            >
+                              {module.done ? 'Review' : <><Play size={12} /> {getVideoSource(module) ? 'Watch' : 'Start'}</>}
+                            </button>
+                          </div>
                         ) : null}
                       </div>
                     ))}
@@ -381,5 +469,22 @@ export default function RoadmapPage({ thought, onBack, userProfile }) {
         </div>
       )}
     </div>
+    {showQuiz ? (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }}>
+        <QuizRunner
+          questions={quizQuestions}
+          onClose={() => setShowQuiz(false)}
+          onFinished={(res) => {
+            onQuizComplete?.({
+              ...res,
+              thoughtId: thought?.id,
+              topic: thought?.goal,
+              roadmapDbId: thought?.roadmapDbId || thought?.roadmap?._roadmapDbId,
+            });
+          }}
+        />
+      </div>
+    ) : null}
+    </>
   );
 }

@@ -132,3 +132,41 @@ a {
 .btn-secondary:hover {
   background-color: #0b081a;
 }
+
+/* --- CHALO-GOLO galaxy / gamification surfaces --- */
+.cg-galaxy {
+  --cg-purple: #a855f7;
+  --cg-orange: #fb923c;
+  --cg-cyan: #22d3ee;
+  --cg-bg: #07060f;
+  --cg-card: rgba(18, 16, 32, 0.72);
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 20% 0%, rgba(168, 85, 247, 0.35), transparent),
+    radial-gradient(900px 500px at 90% 20%, rgba(251, 146, 60, 0.22), transparent),
+    linear-gradient(180deg, #07060f, #0b0718 60%, #05040c);
+  color: #f8fafc;
+}
+
+.cg-glass {
+  background: var(--cg-card);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  box-shadow: 0 0 40px rgba(168, 85, 247, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  border-radius: 20px;
+}
+
+.cg-flow-node {
+  min-width: 140px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 12, 28, 0.92);
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.35);
+}
+.cg-flow-node.cg-nova { box-shadow: 0 0 28px rgba(251, 146, 60, 0.45); border-color: rgba(251, 146, 60, 0.45); }
+.cg-flow-node.cg-blaze { box-shadow: 0 0 24px rgba(34, 211, 238, 0.35); border-color: rgba(34, 211, 238, 0.35); }
+.cg-flow-title { font-weight: 800; font-size: 13px; color: #fff; }
+.cg-flow-sub { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+.cg-flow-xp { margin-top: 8px; font-size: 11px; font-weight: 700; color: #c4b5fd; }
+
+.react-flow__background { opacity: 0.4; }

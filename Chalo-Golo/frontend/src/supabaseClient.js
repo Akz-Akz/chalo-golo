@@ -298,6 +298,8 @@ export const dataService = {
       status: row.status || 'active',
       realityScore: row.reality_score ?? null,
       roadmap: row.roadmap || null,
+      gamifiedRoadmap: row.roadmap?._gamifiedRoadmap || null,
+      roadmapDbId: row.roadmap?._roadmapDbId || null,
       thoughtData: row.thought_data || {},
       progress: row.progress || 0,
       color: row.color || '#5b47e0',
@@ -333,7 +335,10 @@ export const dataService = {
       tags: thought.tags,
       reality_score: thought.realityScore,
       thought_data: thought.thoughtData || {},
-      roadmap: thought.roadmap || {},
+      roadmap: {
+        ...(thought.roadmap || {}),
+        ...(thought.gamifiedRoadmap ? { _gamifiedRoadmap: thought.gamifiedRoadmap } : {}),
+      },
       weekly_hours: thought.weeklyHours || null,
       created_at: thought.createdAt || new Date().toISOString(),
     });
