@@ -16,9 +16,6 @@ dist-ssr
 *.env
 *.env.*
 
-# Allow committing the template (must appear after ignore patterns above)
-!.env.example
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

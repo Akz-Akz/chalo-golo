@@ -3,5 +3,3 @@
 .env.*
 *.env
 *.env.*
-!frontend/.env.example
-
