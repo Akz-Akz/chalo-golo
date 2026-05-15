@@ -92,10 +92,10 @@ function App() {
 
   const setPage = useCallback((nextPage, options = {}) => {
     const path = PAGE_PATHS[nextPage] || '/';
-    if (location.pathname !== path) {
+    if (window.location.pathname !== path) {
       navigate(path, { replace: Boolean(options.replace) });
     }
-  }, [location.pathname, navigate]);
+  }, [navigate]);
 
   const goBack = useCallback((fallback = 'dashboard') => {
     if (window.history.length > 1) {
@@ -166,7 +166,9 @@ function App() {
         }
         setUserProfile(merged);
         dataService.saveProfile(merged);
-        setPage(getInitialPage(merged));
+        if (window.location.pathname === '/' || window.location.pathname === '/auth') {
+          setPage(getInitialPage(merged), { replace: true });
+        }
         const remoteThoughts = await dataService.loadThoughtsForUser(sessionUser.id);
         setThoughts(remoteThoughts);
       } else {
@@ -373,8 +375,9 @@ function App() {
       streak: nextWithAvatar.streak ?? useUserStore.getState().streak,
       emergencyExitLeft: nextWithAvatar.emergencyExitLeft ?? useUserStore.getState().emergencyExitLeft,
     });
+    setPage(nextWithAvatar.onboardingComplete ? 'dashboard' : 'onboarding');
     if (nextWithAvatar.id) {
-      await upsertUserRow({
+      upsertUserRow({
         id: nextWithAvatar.id,
         attention_score: attnResult.score,
         level: nextWithAvatar.level,
@@ -384,7 +387,6 @@ function App() {
         streak: nextWithAvatar.streak ?? useUserStore.getState().streak ?? 0,
       });
     }
-    setPage(nextWithAvatar.onboardingComplete ? 'dashboard' : 'onboarding');
   };
 
   const handleMiniGameDone = async (score) => {
