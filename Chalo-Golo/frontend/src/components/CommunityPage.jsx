@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Users, Calendar, Trophy, MapPin, Heart, MessageCircle, Share2, Filter, Bell, X, ChevronDown, Lock, Check, Star } from 'lucide-react';
 import { dummyPeers, dummyEvents, dummyAchievements } from '../data/dummyData';
+import { useUiStore } from '../stores/uiStore.js';
+import AppLogo from './AppLogo.jsx';
 
 const GOAL_FILTERS = ['All', 'ML / AI', 'Web Dev', 'Mobile', 'Design', 'Startup', 'Other'];
 const STATUS_FILTERS = ['All', 'Active today', 'Active this week', 'Has mutual peers'];
@@ -9,7 +11,7 @@ const EVENT_TOPIC_FILTERS = ['All', 'AI', 'Startup', 'Open Source', 'Design'];
 const EVENT_TYPE_FILTERS = ['All', 'Hackathon', 'Workshop', 'Networking'];
 const EVENT_ACCESS_FILTERS = ['All', 'In-person', 'Online only', 'Hybrid'];
 
-export default function CommunityPage({ onBack, userName }) {
+export default function CommunityPage({ onBack, userName, userProfile }) {
   const [tab, setTab] = useState('peers');
   const [connected, setConnected] = useState([]);
   const [liked, setLiked] = useState([]);
@@ -22,6 +24,8 @@ export default function CommunityPage({ onBack, userName }) {
   const [filterGoal, setFilterGoal] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterDistance, setFilterDistance] = useState('All');
+  const presence = useUiStore((s) => s.presence);
+  const setPresence = useUiStore((s) => s.setPresence);
 
   const activeFilterCount = [filterGoal, filterStatus, filterDistance].filter(f => f !== 'All').length;
 
@@ -144,16 +148,17 @@ export default function CommunityPage({ onBack, userName }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
+    <div className="cg-page-shell" style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', padding: '20px 32px', position: 'sticky', top: 0, zIndex: 50 }}>
+      <div className="cg-nav-shell" style={{ padding: '20px 32px', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <div>
               <button onClick={onBack} style={{ background: '#fff', border: '1.5px solid #e5e5e5', borderRadius: 10, padding: '6px 10px', fontSize: 12, cursor: 'pointer', marginBottom: 8 }}>
                 ← Back to Dashboard
               </button>
-              <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1f1f1f', marginBottom: 2 }}>Community Hub</h1>
+              <AppLogo size={30} />
+              <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 2, marginTop: 10 }}>Community Hub</h1>
               <p style={{ fontSize: 14, color: '#5f5f5f' }}>Connect, collaborate, and learn with peers at the same stage, {userName || 'friend'}.</p>
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -221,6 +226,20 @@ export default function CommunityPage({ onBack, userName }) {
                 )}
               </div>
             </div>
+          </div>
+          <div className="cg-presence-bar">
+            <div>
+              <strong>{userProfile?.name || userName || 'You'}</strong>
+              <span>{presence === 'online' ? 'awake and available' : 'offline focus mode'}</span>
+            </div>
+            <button
+              type="button"
+              className={`cg-presence-toggle ${presence}`}
+              onClick={() => setPresence(presence === 'online' ? 'offline' : 'online')}
+            >
+              <span>{presence === 'online' ? '😄' : '😴'}</span>
+              {presence === 'online' ? 'Online' : 'Offline'}
+            </button>
           </div>
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 4 }}>
@@ -293,8 +312,9 @@ export default function CommunityPage({ onBack, userName }) {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 800, fontSize: 16, color: '#1f1f1f' }}>{peer.alias}</div>
                         <div style={{ fontSize: 13, color: '#5b47e0', fontWeight: 600 }}>{peer.goal}</div>
-                        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                           <MapPin size={11} /> {peer.distance} away • {peer.status}
+                          <span className="cg-mini-presence online">😄 Online</span>
                         </div>
                       </div>
                     </div>

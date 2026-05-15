@@ -17,7 +17,7 @@ export function useQuiz() {
 
   useEffect(() => {
     if (!questions.length || scorePercent != null) return undefined;
-    if (timeLeft > 0) return undefined;
+    if (timeLeft <= 0) return undefined;
     const t = setInterval(() => tick(), 1000);
     return () => clearInterval(t);
   }, [questions.length, timeLeft, tick, scorePercent]);

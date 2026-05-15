@@ -6,6 +6,7 @@ import { mapGamifiedJsonToFlow } from '../services/roadmap.js';
 import { defaultQuizForTopic } from '../services/quiz.js';
 import { generateQuizQuestions } from '../services/ai.js';
 import { useRoadmapStore } from '../stores/roadmapStore.js';
+import { markApprovedLearningNavigation } from '../services/navigationGuard.js';
 
 const phaseColors = ['#5b47e0', '#0284c7', '#7c3aed', '#059669', '#d97706'];
 const RICKROLL_PATTERNS = ['dqw4w9wgxcq', 'rickroll'];
@@ -137,6 +138,7 @@ export default function RoadmapPage({ thought, onBack, userProfile, onThoughtUpd
     } else {
       setLinkError('');
     }
+    markApprovedLearningNavigation(target);
     window.open(target, '_blank', 'noopener,noreferrer');
   };
 
@@ -171,8 +173,8 @@ export default function RoadmapPage({ thought, onBack, userProfile, onThoughtUpd
 
   return (
     <>
-    <div style={{ minHeight: '100vh', background: '#f8f7f4' }}>
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', padding: '16px 32px', display: 'flex', alignItems: 'center', gap: 16, position: 'sticky', top: 0, zIndex: 50 }}>
+    <div className="cg-page-shell" style={{ minHeight: '100vh' }}>
+      <div className="cg-nav-shell" style={{ padding: '16px 32px', display: 'flex', alignItems: 'center', gap: 16, position: 'sticky', top: 0, zIndex: 50 }}>
         <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10, border: '1.5px solid #e5e5e5', background: '#fff', cursor: 'pointer', fontWeight: 600, color: '#5f5f5f', fontSize: 14 }}>
           <ArrowLeft size={16} /> Back
         </button>

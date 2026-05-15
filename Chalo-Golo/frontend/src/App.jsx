@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles, Target, Zap, Users, BookMarked, Map, Shield, Check, Lock,
   UserCircle, Lightbulb, Brain, CheckCircle, AlertTriangle } from 'lucide-react';
 import './App.css';
@@ -17,6 +18,8 @@ import LevelRevealScreen from './components/LevelRevealScreen';
 import AntiDistractionOverlay from './components/AntiDistractionOverlay';
 import BadgeRevealModal from './components/BadgeRevealModal';
 import MiniGameTap from './components/MiniGameTap';
+import VersusBattlePage from './components/VersusBattlePage.jsx';
+import AppLogo from './components/AppLogo.jsx';
 import { authService, dataService } from './supabaseClient';
 import { generateRoadmapWithBackend } from './lib/roadmapEngine';
 import { generateGamifiedRoadmapJSON, buildFallbackGamifiedRoadmap } from './services/ai.js';
@@ -26,6 +29,30 @@ import { useUserStore } from './stores/userStore.js';
 import { useBadge } from './hooks/useBadge.js';
 import { useXP } from './hooks/useXP.js';
 import { useAntiDistraction } from './hooks/useAntiDistraction.js';
+import { ensureProfileImage } from './services/assets.js';
+import { audioManager } from './services/audioManager.js';
+
+const PAGE_PATHS = {
+  landing: '/',
+  auth: '/auth',
+  dashboard: '/dashboard',
+  roadmap: '/roadmap',
+  community: '/community',
+  schedule: '/schedule',
+  minigame: '/minigame',
+  battle: '/battle',
+  onboarding: '/onboarding',
+  generating: '/generating',
+  'generating-roadmap': '/generating-roadmap',
+  'attention-test': '/attention-test',
+  'level-reveal': '/level-reveal',
+};
+
+const PATH_PAGES = Object.fromEntries(Object.entries(PAGE_PATHS).map(([page, path]) => [path, page]));
+
+function pageFromPath(pathname) {
+  return PATH_PAGES[pathname] || 'landing';
+}
 
 const initialProfile = dataService.loadProfile();
 const getInitialPage = (profile) => {
@@ -49,10 +76,12 @@ const buildSessionProfile = (sessionUser, storedProfile) => {
 };
 
 function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { unlock: unlockBadge } = useBadge();
   const { grantXp } = useXP();
-  const [page, setPage] = useState(getInitialPage(initialProfile));
-  const [userProfile, setUserProfile] = useState(initialProfile);
+  const [page, setPageState] = useState(() => (location.pathname === '/' ? getInitialPage(initialProfile) : pageFromPath(location.pathname)));
+  const [userProfile, setUserProfile] = useState(() => ensureProfileImage(initialProfile));
   const [activeThought, setActiveThought] = useState(null);
   const [pendingThought, setPendingThought] = useState(null);
   const [showCreateThought, setShowCreateThought] = useState(false);
@@ -61,9 +90,40 @@ function App() {
   const [apiNotice, setApiNotice] = useState('');
   const [attnResult, setAttnResult] = useState(null);
 
+  const setPage = useCallback((nextPage, options = {}) => {
+    setPageState(nextPage);
+    const path = PAGE_PATHS[nextPage] || '/';
+    if (location.pathname !== path) {
+      navigate(path, { replace: Boolean(options.replace) });
+    }
+  }, [location.pathname, navigate]);
+
+  const goBack = useCallback((fallback = 'dashboard') => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      setPage(fallback);
+    }
+  }, [navigate, setPage]);
+
   useAntiDistraction({
-    enabled: ['dashboard', 'roadmap', 'minigame', 'attention-test', 'level-reveal', 'community', 'schedule', 'onboarding', 'generating', 'generating-roadmap'].includes(page),
+    enabled: ['dashboard', 'roadmap', 'minigame', 'battle', 'attention-test', 'level-reveal', 'community', 'schedule', 'onboarding', 'generating', 'generating-roadmap'].includes(page),
   });
+
+  useEffect(() => {
+    audioManager.preload();
+  }, []);
+
+  useEffect(() => {
+    const nextPage = pageFromPath(location.pathname);
+    setPageState((current) => (current === nextPage ? current : nextPage));
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (location.pathname === '/' && initialProfile) {
+      setPage(getInitialPage(initialProfile), { replace: true });
+    }
+  }, [location.pathname, setPage]);
 
   useEffect(() => {
     const bootstrapAuth = async () => {
@@ -80,12 +140,14 @@ function App() {
       const sessionUser = data?.session?.user;
       if (sessionUser) {
         const storedProfile = dataService.loadProfile();
-        const merged = buildSessionProfile(sessionUser, storedProfile);
+        const merged = ensureProfileImage(buildSessionProfile(sessionUser, storedProfile));
         const row = await fetchUserRow(sessionUser.id);
         if (row) {
           merged.xp = row.xp ?? merged.xp ?? 0;
           merged.streak = row.streak ?? merged.streak ?? 0;
           merged.level = row.level || merged.level || 'spark';
+          merged.profileImage = row.avatar_url || merged.profileImage;
+          merged.avatar_url = merged.profileImage;
           merged.attentionScore = row.attention_score ?? merged.attentionScore;
           merged.emergencyExitLeft = row.emergency_exit_left ?? merged.emergencyExitLeft ?? 2;
           merged.attentionTestComplete =
@@ -125,12 +187,12 @@ function App() {
   const handleAuth = useCallback((data) => {
     const storedProfile = dataService.loadProfile();
     const canReuseStoredProfile = storedProfile && (!data.id || !storedProfile.id || storedProfile.id === data.id);
-    const nextProfile = {
+        const nextProfile = ensureProfileImage({
       ...(canReuseStoredProfile ? storedProfile : {}),
       ...data,
       guest: Boolean(data.guest),
       onboardingComplete: data.guest ? true : Boolean(canReuseStoredProfile && storedProfile?.onboardingComplete),
-    };
+    });
 
     useUserStore.getState().setUserId(data.id || null);
     setUserProfile(nextProfile);
@@ -144,7 +206,7 @@ function App() {
   }, []);
 
   const handleOnboardingComplete = (answers) => {
-    const nextProfile = { ...userProfile, ...answers, onboardingComplete: true, guest: false };
+    const nextProfile = ensureProfileImage({ ...userProfile, ...answers, onboardingComplete: true, guest: false });
     setUserProfile(nextProfile);
     dataService.saveProfile(nextProfile);
     setPage('generating');
@@ -267,7 +329,8 @@ function App() {
   const handleQuizComplete = async ({ percent, thoughtId, topic, roadmapDbId }) => {
     const earned = computeQuizXp(40, percent);
     const res = await grantXp(earned);
-    const nextProfile = { ...userProfile, xp: res.xp };
+    audioManager.play(percent >= 70 ? 'win' : 'lose');
+    const nextProfile = ensureProfileImage({ ...userProfile, xp: res.xp });
     setUserProfile(nextProfile);
     dataService.saveProfile(nextProfile);
     if (userProfile?.id) {
@@ -295,34 +358,37 @@ function App() {
       attentionScore: attnResult.score,
       level: attnResult.level,
     };
-    setUserProfile(next);
-    dataService.saveProfile(next);
+    const nextWithAvatar = ensureProfileImage(next);
+    setUserProfile(nextWithAvatar);
+    dataService.saveProfile(nextWithAvatar);
     useUserStore.getState().hydrate({
-      userId: next.id,
-      level: next.level,
+      userId: nextWithAvatar.id,
+      level: nextWithAvatar.level,
       attentionScore: attnResult.score,
-      xp: next.xp ?? useUserStore.getState().xp,
-      streak: next.streak ?? useUserStore.getState().streak,
-      emergencyExitLeft: next.emergencyExitLeft ?? useUserStore.getState().emergencyExitLeft,
+      xp: nextWithAvatar.xp ?? useUserStore.getState().xp,
+      streak: nextWithAvatar.streak ?? useUserStore.getState().streak,
+      emergencyExitLeft: nextWithAvatar.emergencyExitLeft ?? useUserStore.getState().emergencyExitLeft,
     });
-    if (next.id) {
+    if (nextWithAvatar.id) {
       await upsertUserRow({
-        id: next.id,
+        id: nextWithAvatar.id,
         attention_score: attnResult.score,
-        level: next.level,
-        username: next.name,
-        xp: next.xp ?? useUserStore.getState().xp ?? 0,
-        streak: next.streak ?? useUserStore.getState().streak ?? 0,
+        level: nextWithAvatar.level,
+        username: nextWithAvatar.name,
+        avatar_url: nextWithAvatar.profileImage,
+        xp: nextWithAvatar.xp ?? useUserStore.getState().xp ?? 0,
+        streak: nextWithAvatar.streak ?? useUserStore.getState().streak ?? 0,
       });
     }
     setAttnResult(null);
-    setPage(next.onboardingComplete ? 'dashboard' : 'onboarding');
+    setPage(nextWithAvatar.onboardingComplete ? 'dashboard' : 'onboarding');
   };
 
   const handleMiniGameDone = async (score) => {
     const add = Math.min(40, Math.max(5, Math.floor(score / 3)));
     const res = await grantXp(add);
-    const nextProfile = { ...userProfile, xp: res.xp };
+    audioManager.play('win');
+    const nextProfile = ensureProfileImage({ ...userProfile, xp: res.xp });
     setUserProfile(nextProfile);
     dataService.saveProfile(nextProfile);
     if (userProfile?.id) {
@@ -339,8 +405,8 @@ function App() {
   if (page === 'attention-test') {
     return (
       <>
-        <AntiDistractionOverlay />
-        <AttentionTestPage onComplete={handleAttentionDone} onBack={() => setPage('auth')} />
+          <AntiDistractionOverlay />
+        <AttentionTestPage onComplete={handleAttentionDone} onBack={() => goBack('auth')} />
       </>
     );
   }
@@ -357,7 +423,15 @@ function App() {
     return (
       <>
         <AntiDistractionOverlay />
-        <MiniGameTap onClose={() => setPage('dashboard')} onDone={handleMiniGameDone} />
+        <MiniGameTap onClose={() => goBack('dashboard')} onDone={handleMiniGameDone} />
+      </>
+    );
+  }
+  if (page === 'battle') {
+    return (
+      <>
+        <AntiDistractionOverlay />
+        <VersusBattlePage userProfile={userProfile} onBack={() => goBack('dashboard')} onComplete={(won) => audioManager.play(won ? 'win' : 'lose')} />
       </>
     );
   }
@@ -369,7 +443,7 @@ function App() {
         <BadgeRevealModal />
         <RoadmapPage
           thought={activeThought}
-          onBack={() => setPage('dashboard')}
+          onBack={() => goBack('dashboard')}
           userProfile={userProfile}
           onThoughtUpdate={handleThoughtUpdate}
           onQuizComplete={handleQuizComplete}
@@ -377,8 +451,12 @@ function App() {
       </>
     );
   }
-  if (page === 'community') return <CommunityPage onBack={() => setPage('dashboard')} userName={userProfile?.name} />;
-  if (page === 'schedule') return <SchedulePage thoughts={thoughts} userProfile={userProfile} onBack={() => setPage('dashboard')} onViewRoadmap={(t) => { setActiveThought(t); setPage('roadmap'); }} />;
+  if (page === 'community') return <CommunityPage onBack={() => goBack('dashboard')} userName={userProfile?.name} userProfile={userProfile} onProfileUpdate={(updates) => {
+    const next = ensureProfileImage({ ...userProfile, ...updates });
+    setUserProfile(next);
+    dataService.saveProfile(next);
+  }} />;
+  if (page === 'schedule') return <SchedulePage thoughts={thoughts} userProfile={userProfile} onBack={() => goBack('dashboard')} onViewRoadmap={(t) => { setActiveThought(t); setPage('roadmap'); }} />;
   if (page === 'generating') return <GeneratingScreen onComplete={() => setPage('dashboard')} type="profile" />;
   if (page === 'generating-roadmap') return (
     <>
@@ -408,6 +486,12 @@ function App() {
         onDeleteThought={handleDeleteThought}
         onLogout={handleLogout}
         onOpenMiniGame={() => setPage('minigame')}
+        onOpenBattle={() => setPage('battle')}
+        onProfileUpdate={(updates) => {
+          const next = ensureProfileImage({ ...userProfile, ...updates });
+          setUserProfile(next);
+          dataService.saveProfile(next);
+        }}
       />
       {showCreateThought && <CreateThought onComplete={handleThoughtComplete} onCancel={() => setShowCreateThought(false)} userProfile={userProfile} />}
       {showRealityCheck && <RealityCheckModal goalData={pendingThought} roadmap={pendingThought?.roadmap} userProfile={userProfile} onAccept={handleRealityAccept} onClose={closeRealityCheck} />}
@@ -419,7 +503,7 @@ function App() {
     <div className="app-container">
       <div className="container">
         <header className="navbar">
-          <div className="logo">Chalo Golo</div>
+          <AppLogo />
           <nav className="nav-links">
             <a href="#">How it works</a>
             <a href="#">Features</a>
@@ -454,9 +538,10 @@ function App() {
                     xp: 120,
                     streak: 4,
                   };
-                  dataService.saveProfile(p);
-                  setUserProfile(p);
-                  useUserStore.getState().hydrate({ userId: null, xp: p.xp, streak: p.streak, level: p.level });
+                  const demoProfile = ensureProfileImage(p);
+                  dataService.saveProfile(demoProfile);
+                  setUserProfile(demoProfile);
+                  useUserStore.getState().hydrate({ userId: null, xp: demoProfile.xp, streak: demoProfile.streak, level: demoProfile.level });
                   setPage('dashboard');
                 }}
               >
@@ -603,9 +688,10 @@ function App() {
                   xp: 120,
                   streak: 4,
                 };
-                dataService.saveProfile(p);
-                setUserProfile(p);
-                useUserStore.getState().hydrate({ userId: null, xp: p.xp, streak: p.streak, level: p.level });
+                const demoProfile = ensureProfileImage(p);
+                dataService.saveProfile(demoProfile);
+                setUserProfile(demoProfile);
+                useUserStore.getState().hydrate({ userId: null, xp: demoProfile.xp, streak: demoProfile.streak, level: demoProfile.level });
                 setPage('dashboard');
               }}
             >

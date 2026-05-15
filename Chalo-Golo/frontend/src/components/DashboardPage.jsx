@@ -1,13 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Map, Clock, MoreHorizontal, Sparkles, TrendingUp, Calendar, Users, CheckCircle, ChevronRight, Bell, Zap, LogOut, User, Mail, ChevronDown, Key, Check, X, Brain } from 'lucide-react';
+import { Plus, Map, Clock, MoreHorizontal, Sparkles, TrendingUp, Calendar, Users, CheckCircle, ChevronRight, Bell, Zap, LogOut, User, ChevronDown, Key, Check, X, Brain, Volume2, VolumeX, Swords } from 'lucide-react';
 import { getAIKey, setAIKey, hasAIKey } from '../lib/roadmapEngine.js';
+import AvatarCard from './AvatarCard.jsx';
+import AppLogo from './AppLogo.jsx';
+import { useUiStore } from '../stores/uiStore.js';
 
-export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSchedule, onViewRoadmap, onCreateThought, onDeleteThought, userProfile, onLogout, onOpenMiniGame }) {
+export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSchedule, onViewRoadmap, onCreateThought, onDeleteThought, userProfile, onLogout, onOpenMiniGame, onOpenBattle, onProfileUpdate }) {
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiKeyInput, setAiKeyInput] = useState('');
   const [aiKeyStatus, setAiKeyStatus] = useState({ saved: hasAIKey(), message: '' });
+  const soundsMuted = useUiStore((s) => s.soundsMuted);
+  const setSoundsMuted = useUiStore((s) => s.setSoundsMuted);
   const profileRef = useRef(null);
 
   useEffect(() => {
@@ -74,10 +79,10 @@ export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSc
     : 'Create your first thought and Chalo Golo will build a roadmap around your schedule, budget, and experience level.';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', padding: '0 32px', position: 'sticky', top: 0, zIndex: 50 }}>
+    <div className="cg-page-shell" style={{ minHeight: '100vh' }}>
+      <div className="cg-nav-shell" style={{ padding: '0 32px', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 24, height: 64 }}>
-          <div style={{ fontWeight: 800, fontSize: 22, color: '#1f1f1f', marginRight: 16 }}>Chalo Golo</div>
+          <AppLogo size={34} />
           {[
             { label: 'Dashboard', active: true },
             { label: 'Community', onClick: onGoToCommunity },
@@ -115,6 +120,23 @@ export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSc
                 Dopamine reset
               </button>
             ) : null}
+            {onOpenBattle ? (
+              <button
+                type="button"
+                onClick={onOpenBattle}
+                className="cg-icon-text-button"
+              >
+                <Swords size={14} /> Battle
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setSoundsMuted(!soundsMuted)}
+              className="cg-icon-button"
+              title={soundsMuted ? 'Unmute sound effects' : 'Mute sound effects'}
+            >
+              {soundsMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
           </div>
           <button style={{ position: 'relative', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <Bell size={18} color="#5f5f5f" />
@@ -126,8 +148,8 @@ export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSc
               borderRadius: 24, border: '1.5px solid #e8e5e0', background: profileOpen ? '#f5f3ff' : '#fff',
               cursor: 'pointer', transition: 'all 0.15s'
             }}>
-              <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #5b47e0, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff', fontSize: 13 }}>
-                {(userName[0] || 'U').toUpperCase()}
+              <div style={{ width: 30, height: 30, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg, #5b47e0, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff', fontSize: 13 }}>
+                {userProfile?.profileImage ? <img src={userProfile.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (userName[0] || 'U').toUpperCase()}
               </div>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#1c1917', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName}</span>
               <ChevronDown size={14} color="#6b6b6b" style={{ transform: profileOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
@@ -142,8 +164,8 @@ export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSc
                 {/* User info */}
                 <div style={{ padding: '16px 18px', borderBottom: '1px solid #f0ede8' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #5b47e0, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff', fontSize: 16, flexShrink: 0 }}>
-                      {(userName[0] || 'U').toUpperCase()}
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', background: 'linear-gradient(135deg, #5b47e0, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff', fontSize: 16, flexShrink: 0 }}>
+                      {userProfile?.profileImage ? <img src={userProfile.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (userName[0] || 'U').toUpperCase()}
                     </div>
                     <div style={{ overflow: 'hidden' }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: '#1c1917', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName}</div>
@@ -213,12 +235,17 @@ export default function DashboardPage({ thoughts = [], onGoToCommunity, onGoToSc
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1f1f1f', marginBottom: 6 }}>
-            {greeting}, {userName}
-          </h1>
-          <p style={{ fontSize: 16, color: '#5f5f5f' }}>
-            You have <strong style={{ color: '#5b47e0' }}>{activeCount} active goal{activeCount === 1 ? '' : 's'}</strong> in progress. Keep going.
-          </p>
+          <div className="cg-dashboard-hero">
+            <div>
+              <h1 style={{ fontSize: 30, fontWeight: 900, color: '#fff', marginBottom: 6 }}>
+                {greeting}, {userName}
+              </h1>
+              <p style={{ fontSize: 16, color: '#cbd5e1' }}>
+                You have <strong style={{ color: '#38BDF8' }}>{activeCount} active goal{activeCount === 1 ? '' : 's'}</strong> in progress. Keep going.
+              </p>
+            </div>
+            <AvatarCard profile={userProfile} compact editable onChange={onProfileUpdate} />
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>

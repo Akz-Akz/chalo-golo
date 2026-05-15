@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useUserStore } from '../stores/userStore.js';
 import { upsertUserRow } from '../services/gamificationDb.js';
 import { xpToDisplayTier } from '../services/rewards.js';
+import { audioManager } from '../services/audioManager.js';
 
 export function useXP() {
   const xp = useUserStore((s) => s.xp);
@@ -17,6 +18,7 @@ export function useXP() {
       addXp(amount);
       const nextXp = useUserStore.getState().xp;
       const nextTier = xpToDisplayTier(nextXp);
+      audioManager.play('win');
       if (userId) {
         await upsertUserRow({
           id: userId,
