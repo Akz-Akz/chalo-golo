@@ -26,16 +26,16 @@ export function useAttention() {
   const [wrong, setWrong] = useState(0);
   const [flashIndex, setFlashIndex] = useState(-1);
 
-  const seqLen = useMemo(() => Math.min(3 + Math.floor(round / 2), 8), [round]);
+  const seqLen = useMemo(() => Math.min(2 + Math.floor(round / 2), 4), [round]);
 
   const startRound = useCallback(() => {
-    const decoy = round >= 7;
+    const decoy = false;
     const seq = randomSequence(seqLen, round);
     setSequence(seq);
     setPlayerIndex(0);
     setPhase('show');
     let i = 0;
-    const delayBase = round >= 7 ? 520 : 340;
+    const delayBase = 680;
     const showNext = () => {
       if (i >= seq.length) {
         setFlashIndex(-1);
@@ -43,7 +43,7 @@ export function useAttention() {
         return;
       }
       setFlashIndex(i);
-      const d = delayBase + (round >= 7 ? Math.random() * 400 : 0);
+      const d = delayBase;
       setTimeout(() => {
         setFlashIndex(-1);
         setTimeout(() => {
@@ -72,7 +72,7 @@ export function useAttention() {
       if (!expected) return;
       if (expected.id !== colorId) {
         setWrong((w) => w + 1);
-        setScore((s) => Math.max(0, s - 12));
+        setScore((s) => Math.max(0, s - 8));
         return;
       }
       const next = playerIndex + 1;
@@ -112,6 +112,6 @@ export function useAttention() {
     hitTrap,
     advanceRound,
     finalLevel,
-    decoyMode: round >= 7,
+    decoyMode: false,
   };
 }

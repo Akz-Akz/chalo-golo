@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Brain, Target } from 'lucide-react';
 import { useAttention } from '../hooks/useAttention.js';
 
-const MAX_ROUNDS = 8;
+const MAX_ROUNDS = 4;
 
 export default function AttentionTestPage({ onComplete, onBack }) {
   const {
@@ -35,6 +35,10 @@ export default function AttentionTestPage({ onComplete, onBack }) {
     startRound();
   };
 
+  const skipCalibration = () => {
+    onComplete?.({ score: 70, level: 'blaze' });
+  };
+
   const continueRound = useCallback(() => {
     if (round >= MAX_ROUNDS) {
       onComplete?.({ score, level: finalLevel });
@@ -55,6 +59,13 @@ export default function AttentionTestPage({ onComplete, onBack }) {
           >
             ← Back
           </button>
+          <button
+            type="button"
+            onClick={skipCalibration}
+            style={{ background: 'rgba(15,23,42,0.72)', border: '1px solid rgba(148,163,184,0.25)', color: '#cbd5e1', cursor: 'pointer', fontWeight: 800, borderRadius: 999, padding: '8px 12px' }}
+          >
+            Skip calibration
+          </button>
           <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', color: '#c4b5fd' }}>ATTENTION PROTOCOL</div>
         </div>
 
@@ -65,7 +76,7 @@ export default function AttentionTestPage({ onComplete, onBack }) {
             </div>
             <div>
               <div style={{ fontWeight: 900, fontSize: 20 }}>Simon Pulse</div>
-              <div style={{ fontSize: 13, color: '#94a3b8' }}>Watch the sequence, then mirror it. Fake signals appear in later rounds.</div>
+              <div style={{ fontSize: 13, color: '#94a3b8' }}>Watch the short sequence, then mirror it. Four quick rounds calibrate your pace.</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: '#cbd5e1' }}>
@@ -79,7 +90,7 @@ export default function AttentionTestPage({ onComplete, onBack }) {
           <div className="cg-glass" style={{ padding: 32, textAlign: 'center' }}>
             <Target size={32} color="#fde68a" style={{ marginBottom: 12 }} />
             <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Ready to measure your focus reflexes?</div>
-            <div style={{ color: '#94a3b8', marginBottom: 20, fontSize: 14 }}>This powers adaptive pacing — short, addictive, honest.</div>
+            <div style={{ color: '#94a3b8', marginBottom: 20, fontSize: 14 }}>This powers adaptive pacing — now just four quick, beginner-friendly rounds.</div>
             <button
               type="button"
               onClick={begin}
@@ -94,6 +105,22 @@ export default function AttentionTestPage({ onComplete, onBack }) {
               }}
             >
               Start calibration
+            </button>
+            <button
+              type="button"
+              onClick={skipCalibration}
+              style={{
+                marginLeft: 10,
+                padding: '14px 18px',
+                borderRadius: 14,
+                border: '1px solid rgba(148,163,184,0.28)',
+                cursor: 'pointer',
+                fontWeight: 800,
+                background: 'rgba(15,23,42,0.72)',
+                color: '#cbd5e1',
+              }}
+            >
+              Skip for now
             </button>
           </div>
         ) : (

@@ -58,7 +58,6 @@ const initialProfile = dataService.loadProfile();
 const getInitialPage = (profile) => {
   if (!profile) return 'landing';
   if (profile.guest) return 'dashboard';
-  if (!profile.attentionTestComplete) return 'attention-test';
   if (!profile.onboardingComplete) return 'onboarding';
   return 'dashboard';
 };
