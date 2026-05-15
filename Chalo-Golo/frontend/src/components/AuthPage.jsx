@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Sparkles, Shield, Eye, EyeOff, Mail, KeyRound, AlertCircle, CheckCircle2, Check } from 'lucide-react';
 import { authService } from '../supabaseClient';
+import AppLogo from './AppLogo.jsx';
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24">
@@ -266,17 +267,17 @@ export default function AuthPage({ onAuth }) {
   const isOtp = mode === 'otp-send' || mode === 'otp-verify';
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--bg-color)', alignItems: 'stretch' }}>
+    <div className="cg-page-shell" style={{ minHeight: '100vh', display: 'flex', alignItems: 'stretch' }}>
       {/* Left Panel */}
       <div style={{
-        flex: 1, background: 'linear-gradient(135deg, #5b47e0 0%, #7c3aed 100%)',
+        flex: 1, background: 'radial-gradient(circle at 30% 20%, rgba(56,189,248,0.28), transparent 34%), linear-gradient(135deg, #070B14 0%, #1e1b4b 50%, #7C3AED 100%)',
         display: 'flex', flexDirection: 'column', justifyContent: 'center',
         padding: '60px', color: '#fff', position: 'relative', overflow: 'hidden'
       }}>
         <div style={{ position: 'absolute', top: -80, right: -80, width: 300, height: 300, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ position: 'absolute', bottom: -60, left: -60, width: 250, height: 250, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 28, fontWeight: 800, marginBottom: 48 }}>Chalo Golo</div>
+          <div style={{ marginBottom: 48 }}><AppLogo size={46} /></div>
           <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.2, marginBottom: 24 }}>
             Chalo Golo<br />Walk toward<br />your goals.
           </h2>

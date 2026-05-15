@@ -15,7 +15,7 @@
 .logo {
   font-weight: 800;
   font-size: 24px;
-  color: var(--text-dark);
+  color: #fff;
 }
 
 .nav-links {
@@ -67,7 +67,7 @@
   line-height: 1.1;
   max-width: 800px;
   margin-bottom: 24px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .hero p {

@@ -25,7 +25,7 @@ function persistWarningCount(count) {
 export function useAntiDistraction({ enabled = true } = {}) {
   const triggerWarning = useUiStore((s) => s.triggerWarning);
   const setAntiOverlay = useUiStore((s) => s.setAntiOverlay);
-  const useEmergencyExit = useUserStore((s) => s.useEmergencyExit);
+  const spendEmergencyExit = useUserStore((s) => s.useEmergencyExit);
   const warnings = useRef(readWarningCount());
   const lastIncrementAt = useRef(0);
   const approvedUntil = useRef(0);
@@ -35,11 +35,11 @@ export function useAntiDistraction({ enabled = true } = {}) {
   }, [setAntiOverlay]);
 
   const leaveWithEmergency = useCallback(() => {
-    useEmergencyExit();
+    spendEmergencyExit();
     setAntiOverlay(null);
     warnings.current = 0;
     persistWarningCount(0);
-  }, [setAntiOverlay, useEmergencyExit]);
+  }, [setAntiOverlay, spendEmergencyExit]);
 
   useEffect(() => {
     if (!enabled) return undefined;

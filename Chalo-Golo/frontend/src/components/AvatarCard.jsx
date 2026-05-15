@@ -15,15 +15,16 @@ function indexFrom(value, size) {
 }
 
 export default function AvatarCard({ profile = {}, compact = false, editable = false, onChange }) {
-  const [variant, setVariant] = useState(profile.avatarVariant || 0);
-  const xp = Number(profile.xp || 0);
-  const level = profile.level || 'spark';
-  const glow = GLOWS[(indexFrom(profile.id || profile.name, GLOWS.length) + variant) % GLOWS.length];
+  const safeProfile = profile || {};
+  const [variant, setVariant] = useState(safeProfile.avatarVariant || 0);
+  const xp = Number(safeProfile.xp || 0);
+  const level = safeProfile.level || 'spark';
+  const glow = GLOWS[(indexFrom(safeProfile.id || safeProfile.name, GLOWS.length) + variant) % GLOWS.length];
   const meta = useMemo(() => ({
-    hair: HAIR[(indexFrom(profile.name, HAIR.length) + variant) % HAIR.length],
+    hair: HAIR[(indexFrom(safeProfile.name, HAIR.length) + variant) % HAIR.length],
     outfit: OUTFITS[(indexFrom(level, OUTFITS.length) + variant) % OUTFITS.length],
-    accessory: ACCESSORIES[(indexFrom(profile.email, ACCESSORIES.length) + variant) % ACCESSORIES.length],
-  }), [profile.name, profile.email, level, variant]);
+    accessory: ACCESSORIES[(indexFrom(safeProfile.email, ACCESSORIES.length) + variant) % ACCESSORIES.length],
+  }), [safeProfile.name, safeProfile.email, level, variant]);
 
   const updateVariant = () => {
     const next = (variant + 1) % 4;
@@ -41,8 +42,8 @@ export default function AvatarCard({ profile = {}, compact = false, editable = f
     >
       <div className="cg-avatar-aura" />
       <div className="cg-avatar-orb">
-        {profile.profileImage || profile.avatar_url ? (
-          <img src={profile.profileImage || profile.avatar_url} alt={profile.name || 'Player avatar'} onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+        {safeProfile.profileImage || safeProfile.avatar_url ? (
+          <img src={safeProfile.profileImage || safeProfile.avatar_url} alt={safeProfile.name || 'Player avatar'} onError={(event) => { event.currentTarget.style.display = 'none'; }} />
         ) : null}
         <svg viewBox="0 0 160 160" aria-hidden="true" className="cg-avatar-svg">
           <defs>
@@ -62,7 +63,7 @@ export default function AvatarCard({ profile = {}, compact = false, editable = f
       </div>
       <div className="cg-avatar-copy">
         <div className="cg-avatar-kicker"><Sparkles size={13} /> {String(level).toUpperCase()} AURA</div>
-        <div className="cg-avatar-name">{profile.name || 'Nova Learner'}</div>
+        <div className="cg-avatar-name">{safeProfile.name || 'Nova Learner'}</div>
         <div className="cg-avatar-xp">{xp} XP synced</div>
         {!compact ? (
           <div className="cg-avatar-traits">

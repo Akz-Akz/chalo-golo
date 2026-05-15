@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Map, Clock, MoreHorizontal, Sparkles, TrendingUp, Calendar, Users, CheckCircle, ChevronRight, Bell, Zap, LogOut, User, ChevronDown, Key, Check, X, Brain, Volume2, VolumeX, Swords } from 'lucide-react';
-import { getAIKey, setAIKey, hasAIKey } from '../lib/roadmapEngine.js';
+import { setAIKey, hasAIKey } from '../lib/roadmapEngine.js';
 import AvatarCard from './AvatarCard.jsx';
 import AppLogo from './AppLogo.jsx';
 import { useUiStore } from '../stores/uiStore.js';

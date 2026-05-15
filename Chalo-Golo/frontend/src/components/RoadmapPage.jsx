@@ -101,6 +101,7 @@ export default function RoadmapPage({ thought, onBack, userProfile, onThoughtUpd
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const completedModules = phases.flatMap((phase) => phase.modules || []).filter((module) => module.done).length;
   const totalModules = phases.flatMap((phase) => phase.modules || []).length;
+  const flowLayout = useMemo(() => mapGamifiedJsonToFlow(thought?.gamifiedRoadmap || {}), [thought?.gamifiedRoadmap]);
 
   if (!data) {
     return (
@@ -150,8 +151,6 @@ export default function RoadmapPage({ thought, onBack, userProfile, onThoughtUpd
     }
     openUrl(item);
   };
-
-  const flowLayout = useMemo(() => mapGamifiedJsonToFlow(thought?.gamifiedRoadmap || {}), [thought?.gamifiedRoadmap]);
 
   const toggleModuleDone = (phaseIndex, moduleIndex) => {
     setRoadmapData((prev) => {

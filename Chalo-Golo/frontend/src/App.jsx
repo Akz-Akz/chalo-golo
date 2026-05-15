@@ -112,7 +112,7 @@ function App() {
 
   useEffect(() => {
     audioManager.preload();
-  }, []);
+  }, [setPage]);
 
   useEffect(() => {
     const nextPage = pageFromPath(location.pathname);
@@ -180,7 +180,7 @@ function App() {
       }
     };
     bootstrapAuth();
-  }, []);
+  }, [setPage]);
 
   // useCallback gives handleAuth a stable reference so AuthPage's useEffect
   // (which depends on onAuth) only runs once and never re-subscribes.
@@ -197,13 +197,23 @@ function App() {
     useUserStore.getState().setUserId(data.id || null);
     setUserProfile(nextProfile);
     dataService.saveProfile(nextProfile);
+    if (nextProfile.id) {
+      upsertUserRow({
+        id: nextProfile.id,
+        username: nextProfile.name,
+        avatar_url: nextProfile.profileImage,
+        xp: nextProfile.xp ?? 0,
+        streak: nextProfile.streak ?? 0,
+        level: nextProfile.level || 'spark',
+      });
+    }
     if (data.id) {
       dataService.loadThoughtsForUser(data.id).then(setThoughts);
     } else {
       setThoughts(dataService.loadThoughts());
     }
     setPage(getInitialPage(nextProfile));
-  }, []);
+  }, [setPage]);
 
   const handleOnboardingComplete = (answers) => {
     const nextProfile = ensureProfileImage({ ...userProfile, ...answers, onboardingComplete: true, guest: false });
@@ -266,7 +276,7 @@ function App() {
       attentionScore: null,
       emergencyExitLeft: 2,
     });
-  }, []);
+  }, [setPage]);
 
   const closeRealityCheck = () => {
     setShowRealityCheck(false);

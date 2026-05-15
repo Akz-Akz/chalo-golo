@@ -25,7 +25,7 @@ export default function AntiDistractionOverlay() {
   const overlay = useUiStore((s) => s.antiOverlay);
   const setAntiOverlay = useUiStore((s) => s.setAntiOverlay);
   const emergencyExitLeft = useUserStore((s) => s.emergencyExitLeft);
-  const useEmergencyExit = useUserStore((s) => s.useEmergencyExit);
+  const spendEmergencyExit = useUserStore((s) => s.useEmergencyExit);
 
   if (!overlay) return null;
   const count = Math.max(1, Math.min(3, overlay.count || 1));
@@ -103,7 +103,7 @@ export default function AntiDistractionOverlay() {
             type="button"
             onClick={() => {
               if (emergencyExitLeft <= 0) return;
-              useEmergencyExit();
+              spendEmergencyExit();
               setAntiOverlay(null);
             }}
             disabled={emergencyExitLeft <= 0}
