@@ -80,7 +80,7 @@ function App() {
   const location = useLocation();
   const { unlock: unlockBadge } = useBadge();
   const { grantXp } = useXP();
-  const [page, setPageState] = useState(() => (location.pathname === '/' ? getInitialPage(initialProfile) : pageFromPath(location.pathname)));
+  const page = pageFromPath(location.pathname);
   const [userProfile, setUserProfile] = useState(() => ensureProfileImage(initialProfile));
   const [activeThought, setActiveThought] = useState(null);
   const [pendingThought, setPendingThought] = useState(null);
@@ -112,11 +112,6 @@ function App() {
   useEffect(() => {
     audioManager.preload();
   }, []);
-
-  useEffect(() => {
-    const nextPage = pageFromPath(location.pathname);
-    setPageState((current) => (current === nextPage ? current : nextPage));
-  }, [location.pathname]);
 
   useEffect(() => {
     if (location.pathname === '/' && initialProfile) {
@@ -389,7 +384,6 @@ function App() {
         streak: nextWithAvatar.streak ?? useUserStore.getState().streak ?? 0,
       });
     }
-    setAttnResult(null);
     setPage(nextWithAvatar.onboardingComplete ? 'dashboard' : 'onboarding');
   };
 

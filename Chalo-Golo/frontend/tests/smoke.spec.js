@@ -72,6 +72,11 @@ test('login profile enters short attention calibration before onboarding', async
   await page.goto('/');
   await expect(page).toHaveURL(/\/attention-test$/);
   await expect(page.getByText('Round 1 / 3')).toBeVisible();
+  await page.getByRole('button', { name: 'Skip calibration' }).click();
+  await expect(page).toHaveURL(/\/level-reveal$/);
+  await expect(page.getByText('CALIBRATION COMPLETE')).toBeVisible();
+  await page.getByRole('button', { name: 'Enter the dashboard' }).click();
+  await expect(page).toHaveURL(/\/onboarding$/);
 });
 
 test('attention calibration is three rounds and skippable', async ({ page }) => {
