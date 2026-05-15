@@ -58,6 +58,7 @@ const initialProfile = dataService.loadProfile();
 const getInitialPage = (profile) => {
   if (!profile) return 'landing';
   if (profile.guest) return 'dashboard';
+  if (!profile.attentionTestComplete) return 'attention-test';
   if (!profile.onboardingComplete) return 'onboarding';
   return 'dashboard';
 };
@@ -90,7 +91,6 @@ function App() {
   const [attnResult, setAttnResult] = useState(null);
 
   const setPage = useCallback((nextPage, options = {}) => {
-    setPageState(nextPage);
     const path = PAGE_PATHS[nextPage] || '/';
     if (location.pathname !== path) {
       navigate(path, { replace: Boolean(options.replace) });
@@ -111,7 +111,7 @@ function App() {
 
   useEffect(() => {
     audioManager.preload();
-  }, [setPage]);
+  }, []);
 
   useEffect(() => {
     const nextPage = pageFromPath(location.pathname);

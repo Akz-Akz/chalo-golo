@@ -59,7 +59,7 @@ test('presence and mute controls are interactive', async ({ page }) => {
 });
 
 
-test('login profile no longer gets forced into attention game', async ({ page }) => {
+test('login profile enters short attention calibration before onboarding', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('chalo_golo_profile', JSON.stringify({
       id: 'returning-user',
@@ -70,13 +70,13 @@ test('login profile no longer gets forced into attention game', async ({ page })
     }));
   });
   await page.goto('/');
-  await expect(page).toHaveURL(/\/onboarding$/);
-  await expect(page).not.toHaveURL(/attention-test/);
+  await expect(page).toHaveURL(/\/attention-test$/);
+  await expect(page.getByText('Round 1 / 3')).toBeVisible();
 });
 
-test('attention calibration is four rounds and skippable', async ({ page }) => {
+test('attention calibration is three rounds and skippable', async ({ page }) => {
   await page.goto('/attention-test');
-  await expect(page.getByText('Round 1 / 4')).toBeVisible();
+  await expect(page.getByText('Round 1 / 3')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Skip calibration' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Skip for now' })).toBeVisible();
 });

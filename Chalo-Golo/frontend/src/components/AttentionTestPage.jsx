@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Brain, Target } from 'lucide-react';
 import { useAttention } from '../hooks/useAttention.js';
 
-const MAX_ROUNDS = 4;
+const MAX_ROUNDS = 3;
 
 export default function AttentionTestPage({ onComplete, onBack }) {
   const {
@@ -76,7 +76,7 @@ export default function AttentionTestPage({ onComplete, onBack }) {
             </div>
             <div>
               <div style={{ fontWeight: 900, fontSize: 20 }}>Simon Pulse</div>
-              <div style={{ fontSize: 13, color: '#94a3b8' }}>Watch the short sequence, then mirror it. Four quick rounds calibrate your pace.</div>
+              <div style={{ fontSize: 13, color: '#94a3b8' }}>Watch the short sequence, then mirror it. Three quick rounds calibrate your pace.</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: '#cbd5e1' }}>
@@ -90,7 +90,7 @@ export default function AttentionTestPage({ onComplete, onBack }) {
           <div className="cg-glass" style={{ padding: 32, textAlign: 'center' }}>
             <Target size={32} color="#fde68a" style={{ marginBottom: 12 }} />
             <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Ready to measure your focus reflexes?</div>
-            <div style={{ color: '#94a3b8', marginBottom: 20, fontSize: 14 }}>This powers adaptive pacing — now just four quick, beginner-friendly rounds.</div>
+            <div style={{ color: '#94a3b8', marginBottom: 20, fontSize: 14 }}>This powers adaptive pacing — now just three quick, beginner-friendly rounds.</div>
             <button
               type="button"
               onClick={begin}
